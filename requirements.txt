@@ -1,0 +1,7 @@
+telebot
+selenium
+requests
+python-telegram-bot==20.0
+selenium==4.9.0
+tenacity==8.2.2
+psutil==5.9.4
