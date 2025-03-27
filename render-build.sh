@@ -19,9 +19,9 @@ if ! command -v curl &> /dev/null; then
     }
 fi
 
-# Create a directory for Chrome and Chromedriver
-mkdir -p /opt/chrome
-mkdir -p /opt/chromedriver
+# Create directories for Chrome and Chromedriver in /app (writable directory)
+mkdir -p /app/chrome
+mkdir -p /app/chromedriver
 
 # Download and install Chrome (headless version)
 echo "Downloading Chrome..."
@@ -29,14 +29,14 @@ wget -O /tmp/chrome-linux64.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-
     echo "Failed to download Chrome"
     exit 1
 }
-unzip /tmp/chrome-linux64.zip -d /opt/chrome || {
+unzip /tmp/chrome-linux64.zip -d /app/chrome || {
     echo "Failed to unzip Chrome"
     exit 1
 }
 rm /tmp/chrome-linux64.zip
 
 # Set Chrome binary path
-CHROME_BINARY="/opt/chrome/chrome-linux64/chrome"
+CHROME_BINARY="/app/chrome/chrome-linux64/chrome"
 chmod +x $CHROME_BINARY
 
 # Get the Chrome version
@@ -56,14 +56,14 @@ wget -O /tmp/chromedriver-linux64.zip https://chromedriver.storage.googleapis.co
     echo "Failed to download Chromedriver"
     exit 1
 }
-unzip /tmp/chromedriver-linux64.zip -d /opt/chromedriver || {
+unzip /tmp/chromedriver-linux64.zip -d /app/chromedriver || {
     echo "Failed to unzip Chromedriver"
     exit 1
 }
 rm /tmp/chromedriver-linux64.zip
 
 # Set Chromedriver binary path
-CHROMEDRIVER_BINARY="/opt/chromedriver/chromedriver-linux64/chromedriver"
+CHROMEDRIVER_BINARY="/app/chromedriver/chromedriver-linux64/chromedriver"
 chmod +x $CHROMEDRIVER_BINARY
 
 # Verify installations
