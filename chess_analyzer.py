@@ -13,36 +13,43 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+# In your setup_driver() function:
 def setup_driver():
     """Configure and return a Chrome WebDriver instance."""
-    logger.info("Setting up Chrome WebDriver")
+    chrome_binary = os.getenv("CHROME_BINARY", "/tmp/chrome/chrome-linux64/chrome")
+    chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/tmp/chromedriver/chromedriver-linux64/chromedriver")
 
-    # Get the custom Chrome and Chromedriver paths from environment variables
-    chrome_binary = os.getenv("CHROME_BINARY", "/app/chrome/chrome-linux64/chrome")
-    chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/app/chromedriver/chromedriver-linux64/chromedriver")
-
-    # Set up Chrome options
     options = Options()
-    options.binary_location = chrome_binary  # Set the custom Chrome binary path
-    options.add_argument("--headless")
+    options.binary_location = chrome_binary
+    options.add_argument("--headless=new")  # New headless mode
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+
+    # Anti-detection settings
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
 
-    try:
-        # Set up the Chromedriver service with the custom path
-        service = Service(chromedriver_binary)
-        driver = webdriver.Chrome(service=service, options=options)
-        logger.info("Chrome WebDriver initialized successfully")
-        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-        })
-        return driver
-    except Exception as e:
-        logger.error(f"Failed to initialize Chrome WebDriver: {str(e)}", exc_info=True)
-        raise
+    service = Service(
+        executable_path=chromedriver_binary,
+        service_args=['--verbose'],  # Optional logging
+    )
+
+    driver = webdriver.Chrome(service=service, options=options)
+
+    # Mask selenium detection
+    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        "source": """
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined
+        });
+        """
+    })
+
+    return driver
 
 def analyze_game(game_url):
     """Analyze a Chess.com game and return the review URL."""
