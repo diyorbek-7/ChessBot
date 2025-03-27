@@ -49,11 +49,13 @@ CHROME_VERSION=$($TEMP_CHROME_BINARY --version | grep -oP '\d+\.\d+\.\d+\.\d+') 
 echo "Chrome version: $CHROME_VERSION"
 
 # Download and install the matching Chromedriver version
-echo "Downloading Chromedriver..."
+echo "Fetching Chromedriver version..."
 CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%.*}) || {
     echo "Failed to get Chromedriver version"
     exit 1
 }
+echo "Chromedriver version: $CHROMEDRIVER_VERSION"
+echo "Downloading Chromedriver..."
 wget -O /tmp/chromedriver-linux64.zip https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver-linux64.zip || {
     echo "Failed to download Chromedriver"
     exit 1
