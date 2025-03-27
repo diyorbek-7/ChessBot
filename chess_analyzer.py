@@ -16,7 +16,14 @@ logger = logging.getLogger(__name__)
 def setup_driver():
     """Configure and return a Chrome WebDriver instance."""
     logger.info("Setting up Chrome WebDriver")
+
+    # Get the custom Chrome and Chromedriver paths from environment variables
+    chrome_binary = os.getenv("CHROME_BINARY", "/opt/chrome/chrome-linux64/chrome")
+    chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/opt/chromedriver/chromedriver-linux64/chromedriver")
+
+    # Set up Chrome options
     options = Options()
+    options.binary_location = chrome_binary  # Set the custom Chrome binary path
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -25,7 +32,9 @@ def setup_driver():
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
 
     try:
-        driver = webdriver.Chrome(service=Service(), options=options)
+        # Set up the Chromedriver service with the custom path
+        service = Service(chromedriver_binary)
+        driver = webdriver.Chrome(service=service, options=options)
         logger.info("Chrome WebDriver initialized successfully")
         driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
