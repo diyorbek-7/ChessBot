@@ -19,9 +19,11 @@ if ! command -v curl &> /dev/null; then
     }
 fi
 
-# Create directories for Chrome and Chromedriver in /app (writable directory)
-mkdir -p /app/chrome
-mkdir -p /app/chromedriver
+# Use /tmp for temporary storage during build (writable directory)
+TEMP_CHROME_DIR="/tmp/chrome"
+TEMP_CHROMEDRIVER_DIR="/tmp/chromedriver"
+mkdir -p $TEMP_CHROME_DIR
+mkdir -p $TEMP_CHROMEDRIVER_DIR
 
 # Download and install Chrome (headless version)
 echo "Downloading Chrome..."
@@ -29,18 +31,18 @@ wget -O /tmp/chrome-linux64.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-
     echo "Failed to download Chrome"
     exit 1
 }
-unzip /tmp/chrome-linux64.zip -d /app/chrome || {
+unzip /tmp/chrome-linux64.zip -d $TEMP_CHROME_DIR || {
     echo "Failed to unzip Chrome"
     exit 1
 }
 rm /tmp/chrome-linux64.zip
 
-# Set Chrome binary path
-CHROME_BINARY="/app/chrome/chrome-linux64/chrome"
-chmod +x $CHROME_BINARY
+# Set temporary Chrome binary path for verification
+TEMP_CHROME_BINARY="$TEMP_CHROME_DIR/chrome-linux64/chrome"
+chmod +x $TEMP_CHROME_BINARY
 
 # Get the Chrome version
-CHROME_VERSION=$($CHROME_BINARY --version | grep -oP '\d+\.\d+\.\d+\.\d+') || {
+CHROME_VERSION=$($TEMP_CHROME_BINARY --version | grep -oP '\d+\.\d+\.\d+\.\d+') || {
     echo "Failed to get Chrome version"
     exit 1
 }
@@ -56,25 +58,42 @@ wget -O /tmp/chromedriver-linux64.zip https://chromedriver.storage.googleapis.co
     echo "Failed to download Chromedriver"
     exit 1
 }
-unzip /tmp/chromedriver-linux64.zip -d /app/chromedriver || {
+unzip /tmp/chromedriver-linux64.zip -d $TEMP_CHROMEDRIVER_DIR || {
     echo "Failed to unzip Chromedriver"
     exit 1
 }
 rm /tmp/chromedriver-linux64.zip
 
-# Set Chromedriver binary path
-CHROMEDRIVER_BINARY="/app/chromedriver/chromedriver-linux64/chromedriver"
-chmod +x $CHROMEDRIVER_BINARY
+# Set temporary Chromedriver binary path for verification
+TEMP_CHROMEDRIVER_BINARY="$TEMP_CHROMEDRIVER_DIR/chromedriver-linux64/chromedriver"
+chmod +x $TEMP_CHROMEDRIVER_BINARY
 
 # Verify installations
-$CHROME_BINARY --version || {
+$TEMP_CHROME_BINARY --version || {
     echo "Chrome installation failed"
     exit 1
 }
-$CHROMEDRIVER_BINARY --version || {
+$TEMP_CHROMEDRIVER_BINARY --version || {
     echo "Chromedriver installation failed"
     exit 1
 }
+
+# Move the binaries to /app for runtime (Render allows writing to /app at runtime)
+echo "Moving Chrome and Chromedriver to /app for runtime..."
+mkdir -p /app/chrome
+mkdir -p /app/chromedriver
+mv $TEMP_CHROME_DIR/chrome-linux64 /app/chrome/ || {
+    echo "Failed to move Chrome to /app"
+    exit 1
+}
+mv $TEMP_CHROMEDRIVER_DIR/chromedriver-linux64 /app/chromedriver/ || {
+    echo "Failed to move Chromedriver to /app"
+    exit 1
+}
+
+# Set the final paths for runtime
+CHROME_BINARY="/app/chrome/chrome-linux64/chrome"
+CHROMEDRIVER_BINARY="/app/chromedriver/chromedriver-linux64/chromedriver"
 
 # Export paths for the runtime environment
 echo "Exporting Chrome and Chromedriver paths..."
