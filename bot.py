@@ -1,66 +1,60 @@
-# bot.py
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from telegram.error import TimedOut
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from chess_analyzer import get_review_url
-import config
+import logging
+import os
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 
-
-@retry(
-    stop=stop_after_attempt(2),
-    wait=wait_exponential(multiplier=1, min=4, max=10),
-    retry=retry_if_exception_type(TimedOut)
+# Set up logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str, reply_markup=None):
-    """Send a message with retry capability."""
-    return await update.message.reply_text(text, reply_markup=reply_markup)
+logger = logging.getLogger(__name__)
 
+# Define your bot handlers
+async def start(update, context):
+    await update.message.reply_text("Welcome! Send your chess game URL to make it reviewable.")
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle the /start command."""
-    await send_message(update, context, "Welcome! Send your chess game URL to make it reviewable.")
+async def handle_message(update, context):
+    # Add your message handling logic here (e.g., process Chess.com URLs)
+    await update.message.reply_text("Received your message. Processing...")
 
+# Define a simple HTTP server for Render's Web Service requirement
+class DummyHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
 
-async def process_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Process incoming messages containing Chess.com game URLs."""
-    url = update.message.text.strip()
-
-    if not ("chess.com" in url.lower() and "game" in url.lower()):
-        await send_message(update, context,
-                           "Please provide a valid Chess.com game URL (e.g., https://www.chess.com/game/live/123456789)")
-        return
-
-    await send_message(update, context, "Analyzing your game... Please wait.")
-
-    # Extract URL if message contains multiple words
-    if " " in url:
-        url = next((word for word in url.split() if "chess.com" in word.lower()), url)
-
-    review_url = get_review_url(url)
-
-    if review_url:
-        keyboard = [[InlineKeyboardButton("View Game Review", url=review_url)]]
-        await send_message(update, context, "Here's your game review:",
-                           reply_markup=InlineKeyboardMarkup(keyboard))
-    else:
-        await send_message(update, context, "THE GAME IS REVIEWABLE!\nOpen it in the app or website, or simply click your link.")
-
+def run_http_server():
+    # Get the port from the environment variable (Render sets PORT for Web Services)
+    port = int(os.getenv("PORT", 8000))
+    server_address = ("", port)
+    httpd = HTTPServer(server_address, DummyHandler)
+    logger.info(f"Starting HTTP server on port {port}")
+    httpd.serve_forever()
 
 def main():
-    """Initialize and run the Telegram bot."""
-    app = Application.builder() \
-        .token(config.TELEGRAM_TOKEN) \
-        .read_timeout(30) \
-        .write_timeout(30) \
-        .build()
+    # Get the Telegram token from environment variables
+    token = os.getenv("TELEGRAM_TOKEN")
+    if not token:
+        logger.error("TELEGRAM_TOKEN not set in environment variables")
+        return
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, process_url))
+    # Create the Application and pass it your bot's token
+    application = Application.builder().token(token).build()
 
-    print("Bot started...")
-    app.run_polling(allowed_updates=Update.ALL_TYPES, timeout=120)
+    # Add handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
+    # Start the HTTP server in a separate thread
+    http_thread = threading.Thread(target=run_http_server, daemon=True)
+    http_thread.start()
+
+    # Start the bot
+    logger.info("Starting bot polling...")
+    application.run_polling(allowed_updates=["message"])
 
 if __name__ == "__main__":
     main()
