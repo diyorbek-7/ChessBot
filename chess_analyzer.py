@@ -19,18 +19,19 @@ logger = logging.getLogger(__name__)
 def setup_driver():
     """Configure and return a Chrome WebDriver instance."""
     options = Options()
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--headless")  # Run in headless mode
+    options.add_argument("--no-sandbox")  # Required for Render
+    options.add_argument("--disable-dev-shm-usage")  # Avoids memory issues
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
 
-    driver = webdriver.Chrome(service=Service("chromedriver.exe"), options=options)
+    # Use the system-installed Chromedriver (installed by render-build.sh)
+    driver = webdriver.Chrome(service=Service(), options=options)
     driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
         "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
     })
     return driver
-
 
 def close_driver(driver):
     """Safely close the WebDriver and associated processes."""
