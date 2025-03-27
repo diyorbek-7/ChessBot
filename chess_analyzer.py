@@ -18,8 +18,8 @@ def setup_driver():
     logger.info("Setting up Chrome WebDriver")
 
     # Get the custom Chrome and Chromedriver paths from environment variables
-    chrome_binary = os.getenv("CHROME_BINARY", "/opt/chrome/chrome-linux64/chrome")
-    chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/opt/chromedriver/chromedriver-linux64/chromedriver")
+    chrome_binary = os.getenv("CHROME_BINARY", "/app/chrome/chrome-linux64/chrome")
+    chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/app/chromedriver/chromedriver-linux64/chromedriver")
 
     # Set up Chrome options
     options = Options()
