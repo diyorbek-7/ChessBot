@@ -1,53 +1,50 @@
 #!/bin/bash
 
-# Use a verified Chrome for Testing version that matches Chromedriver
-CHROME_VERSION="124.0.6367.78"  # Tested working version
-CHROMEDRIVER_VERSION="124.0.6367.78"
+set -e
 
-# Install system dependencies
-apt-get update
-apt-get install -y wget unzip
+RENDER_ENV_FILE="/app/.env"
 
-# Install Chrome for Testing
-echo "Installing Chrome for Testing ${CHROME_VERSION}..."
-mkdir -p /tmp/chrome
-wget -nv -O /tmp/chrome.zip \
-  "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/linux64/chrome-linux64.zip"
-unzip -q /tmp/chrome.zip -d /tmp/chrome/
-CHROME_BINARY="/tmp/chrome/chrome-linux64/chrome"
+# Define versions and URLs
+CHROME_VERSION="124.0.6367.78"
+CHROME_URL="https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chrome-linux64.zip"
+CHROMEDRIVER_URL="https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
 
-# Install matching Chromedriver
-echo "Installing Chromedriver ${CHROMEDRIVER_VERSION}..."
-mkdir -p /tmp/chromedriver
-wget -nv -O /tmp/chromedriver.zip \
-  "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"
-unzip -q /tmp/chromedriver.zip -d /tmp/chromedriver/
-CHROMEDRIVER_BINARY="/tmp/chromedriver/chromedriver-linux64/chromedriver"
+# Define temporary and runtime directories
+TMP_CHROME_DIR="/tmp/chrome"
+TMP_CHROMEDRIVER_DIR="/tmp/chromedriver"
+RUNTIME_CHROME_DIR="/app/chrome"
+RUNTIME_CHROMEDRIVER_DIR="/app/chromedriver"
 
-# Verify installations
-if [ ! -f "$CHROME_BINARY" ]; then
-  echo "Error: Chrome binary not found at $CHROME_BINARY"
-  exit 1
-fi
+# Create temporary directories
+mkdir -p "$TMP_CHROME_DIR"
+mkdir -p "$TMP_CHROMEDRIVER_DIR"
 
-if [ ! -f "$CHROMEDRIVER_BINARY" ]; then
-  echo "Error: Chromedriver not found at $CHROMEDRIVER_BINARY"
-  exit 1
-fi
+# Download Chrome
+echo "Installing Chrome for Testing $CHROME_VERSION..."
+curl -L "$CHROME_URL" -o "/tmp/chrome.zip"
+unzip -o "/tmp/chrome.zip" -d "$TMP_CHROME_DIR"
 
-# Set permissions
-chmod +x "$CHROME_BINARY"
-chmod +x "$CHROMEDRIVER_BINARY"
+# Download Chromedriver
+echo "Installing Chromedriver $CHROME_VERSION..."
+curl -L "$CHROMEDRIVER_URL" -o "/tmp/chromedriver.zip"
+unzip -o "/tmp/chromedriver.zip" -d "$TMP_CHROMEDRIVER_DIR"
 
-# Export paths to Render environment
+# Export environment variables for runtime
 echo "Exporting environment variables..."
-echo "CHROME_BINARY=$CHROME_BINARY" >> $RENDER_ENV_FILE
-echo "CHROMEDRIVER_BINARY=$CHROMEDRIVER_BINARY" >> $RENDER_ENV_FILE
+echo "CHROME_BINARY=$RUNTIME_CHROME_DIR/chrome-linux64/chrome" >> "$RENDER_ENV_FILE"
+echo "CHROMEDRIVER_BINARY=$RUNTIME_CHROMEDRIVER_DIR/chromedriver-linux64/chromedriver" >> "$RENDER_ENV_FILE"
 
 # Verify versions
 echo "Chrome version:"
-$CHROME_BINARY --version
+"$TMP_CHROME_DIR/chrome-linux64/chrome" --version
 echo "Chromedriver version:"
-$CHROMEDRIVER_BINARY --version
+"$TMP_CHROMEDRIVER_DIR/chromedriver-linux64/chromedriver" --version
+
+# Move Chrome and Chromedriver to /app for runtime
+echo "Moving Chrome and Chromedriver to /app for runtime..."
+mkdir -p "$RUNTIME_CHROME_DIR"
+mkdir -p "$RUNTIME_CHROMEDRIVER_DIR"
+mv "$TMP_CHROME_DIR/chrome-linux64" "$RUNTIME_CHROME_DIR/"
+mv "$TMP_CHROMEDRIVER_DIR/chromedriver-linux64" "$RUNTIME_CHROMEDRIVER_DIR/"
 
 echo "Chrome and Chromedriver installed successfully!"
