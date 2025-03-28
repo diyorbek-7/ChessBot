@@ -2,8 +2,6 @@
 
 set -e
 
-RENDER_ENV_FILE="/app/.env"
-
 # Define versions and URLs
 CHROME_VERSION="124.0.6367.78"
 CHROME_URL="https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chrome-linux64.zip"
@@ -28,11 +26,6 @@ unzip -o "/tmp/chrome.zip" -d "$TMP_CHROME_DIR"
 echo "Installing Chromedriver $CHROME_VERSION..."
 curl -L "$CHROMEDRIVER_URL" -o "/tmp/chromedriver.zip"
 unzip -o "/tmp/chromedriver.zip" -d "$TMP_CHROMEDRIVER_DIR"
-
-# Export environment variables for runtime
-echo "Exporting environment variables..."
-echo "CHROME_BINARY=$RUNTIME_CHROME_DIR/chrome-linux64/chrome" >> "$RENDER_ENV_FILE"
-echo "CHROMEDRIVER_BINARY=$RUNTIME_CHROMEDRIVER_DIR/chromedriver-linux64/chromedriver" >> "$RENDER_ENV_FILE"
 
 # Verify versions
 echo "Chrome version:"
